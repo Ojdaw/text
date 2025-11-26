@@ -2,44 +2,76 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fullscreen Notes With Tabs</title>
+<title>Glass Smooth Notes</title>
 
 <style>
     *{margin:0;padding:0;box-sizing:border-box;}
 
     body,html{
         width:100%;height:100%;overflow:hidden;
-        font-family:Arial, sans-serif;
-        background:#ffffff;
+        font-family: "Segoe UI", "Inter", Arial, sans-serif;
+        background: linear-gradient(135deg,#1e1f24,#111);
+        color:white;
     }
 
-    /* Top tab bar */
+    /* --- Top Bar (Glass Effect) --- */
     #tabs {
         display:flex;align-items:center;
-        background:#222;color:white;padding:6px 10px;
-        user-select:none;
+        backdrop-filter: blur(14px);
+        background: rgba(255,255,255,0.06);
+        padding:10px 14px;
+        border-bottom:1px solid rgba(255,255,255,0.12);
+        gap:8px;
+        box-shadow:0 4px 18px rgba(0,0,0,.4);
     }
 
     .tab {
-        padding:6px 12px;margin-right:5px;
-        background:#444;border-radius:4px;
-        cursor:pointer;transition:.25s;
+        padding:8px 16px;
+        background:rgba(255,255,255,.07);
+        border-radius:8px;
+        cursor:pointer;
+        transition:.3s;
+        white-space:nowrap;
+        font-size:15px;
+        opacity:.85;
     }
-    .tab.active{background:#0084ff;}
+    .tab:hover {opacity:1;transform:translateY(-1px);}
+
+    .tab.active {
+        background:rgba(0,140,255,.45);
+        box-shadow:0 0 15px rgba(0,140,255,.55);
+        opacity:1;font-weight:600;
+    }
 
     #addTab {
-        background:#00c853;margin-left:auto;
-        padding:6px 10px;border-radius:4px;
+        margin-left:auto;
+        padding:8px 14px;
+        background:rgba(0,200,90,.45);
+        border-radius:8px;
         cursor:pointer;
+        transition:.3s;
+        font-weight:600;
+        opacity:.85;
+    }
+    #addTab:hover {opacity:1;transform:translateY(-1px);}
+
+    /* --- Text Area --- */
+    #editor {
+        width:100%;
+        height:calc(100% - 58px);
+        border:none;outline:none;resize:none;
+        padding:25px;
+        font-size:18px;
+        line-height:1.55;
+        background:rgba(255,255,255,.05);
+        backdrop-filter: blur(10px);
+        color:white;
+        transition:opacity .28s ease;
+        caret-color:#00a6ff;
     }
 
-    /* Textarea + fade animation */
-    #editor {
-        width:100%;height:calc(100% - 42px);
-        border:none;outline:none;resize:none;
-        padding:20px;font-size:16px;
-        background:#fff;
-        opacity:1;transition:opacity .25s ease;
+    #editor:focus {
+        box-shadow:inset 0 0 30px rgba(0,170,255,.18);
     }
 </style>
 </head>
@@ -50,15 +82,14 @@
 <textarea id="editor" placeholder="Start typing..."></textarea>
 
 <script>
-/* ---- LocalStorage Load ---- */
+/* ========================= LocalStorage ========================= */
 let tabs = JSON.parse(localStorage.getItem("tabs")) || [{name:"Note 1", text:""}];
 let active = localStorage.getItem("activeTab") || 0;
 
-/* ---- Elements ---- */
 const tabBar = document.getElementById("tabs");
 const editor = document.getElementById("editor");
 
-/* ---- Build Tabs ---- */
+/* ========================= Build Tab Bar ========================= */
 function renderTabs(){
     tabBar.innerHTML="";
     tabs.forEach((t,i)=>{
@@ -66,44 +97,49 @@ function renderTabs(){
         el.className="tab" + (i==active?" active":"");
         el.textContent=t.name;
         el.onclick=()=>changeTab(i);
-        el.oncontextmenu=(e)=>{e.preventDefault(); deleteTab(i);};
+        el.oncontextmenu=(e)=>{e.preventDefault(); deleteTab(i);} // Right-click remove
         tabBar.appendChild(el);
     });
+
     let add=document.createElement("div");
-    add.id="addTab";add.textContent="+ Add Tab";
+    add.id="addTab"; add.textContent="+ New Note";
     add.onclick=addTab;
     tabBar.appendChild(add);
 }
 
-/* ---- Switch Tabs (with fade animation) ---- */
+/* ========================= Switch Tabs w/ Fade ========================= */
 function changeTab(i){
     saveText();
     editor.style.opacity=0;
     setTimeout(()=>{
-        active=i;editor.value=tabs[i].text;
+        active=i;
+        editor.value=tabs[i].text;
         localStorage.setItem("activeTab", active);
-        renderTabs();editor.style.opacity=1;
+        renderTabs();
+        editor.style.opacity=1;
     },200);
 }
 
-/* ---- New Tab ---- */
+/* ========================= NEW NOTE — Empty instantly ========================= */
 function addTab(){
-    tabs.push({name:"Note "+(tabs.length+1),text:""});
+    saveText();
+    tabs.push({name:"Note "+(tabs.length+1), text:""});
     active=tabs.length-1;
     saveAll();
     renderTabs();
-    changeTab(active);
+    editor.value="";
+    editor.focus();
 }
 
-/* ---- Delete Tab ---- */
+/* ========================= Delete a Tab ========================= */
 function deleteTab(i){
-    if(tabs.length===1) return alert("You need at least one tab!");
+    if(tabs.length===1) return alert("You need at least one note.");
     tabs.splice(i,1);
     if(active>=tabs.length) active=tabs.length-1;
-    saveAll();renderTabs();changeTab(active);
+    saveAll(); renderTabs(); changeTab(active);
 }
 
-/* ---- Save text continuously ---- */
+/* ========================= Saving ========================= */
 function saveText(){
     tabs[active].text=editor.value;
     saveAll();
@@ -115,7 +151,7 @@ function saveAll(){
 
 editor.addEventListener("input", saveText);
 
-/* ---- Initialize ---- */
+/* ========================= Initialize ========================= */
 renderTabs();
 editor.value=tabs[active].text;
 </script>
