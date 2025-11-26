@@ -1,36 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full Screen Text Box</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        textarea {
-            width: 100%;
-            height: 100%;
-            border: none;
-            outline: none;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            resize: none;
-            background-color: #ffffff;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Fullscreen Notes With Tabs</title>
+
+<style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+
+    body,html{
+        width:100%;height:100%;overflow:hidden;
+        font-family:Arial, sans-serif;
+        background:#ffffff;
+    }
+
+    /* Top tab bar */
+    #tabs {
+        display:flex;align-items:center;
+        background:#222;color:white;padding:6px 10px;
+        user-select:none;
+    }
+
+    .tab {
+        padding:6px 12px;margin-right:5px;
+        background:#444;border-radius:4px;
+        cursor:pointer;transition:.25s;
+    }
+    .tab.active{background:#0084ff;}
+
+    #addTab {
+        background:#00c853;margin-left:auto;
+        padding:6px 10px;border-radius:4px;
+        cursor:pointer;
+    }
+
+    /* Textarea + fade animation */
+    #editor {
+        width:100%;height:calc(100% - 42px);
+        border:none;outline:none;resize:none;
+        padding:20px;font-size:16px;
+        background:#fff;
+        opacity:1;transition:opacity .25s ease;
+    }
+</style>
 </head>
+
 <body>
-    <textarea placeholder="Start typing..."></textarea>
+
+<div id="tabs"></div>
+<textarea id="editor" placeholder="Start typing..."></textarea>
+
+<script>
+/* ---- LocalStorage Load ---- */
+let tabs = JSON.parse(localStorage.getItem("tabs")) || [{name:"Note 1", text:""}];
+let active = localStorage.getItem("activeTab") || 0;
+
+/* ---- Elements ---- */
+const tabBar = document.getElementById("tabs");
+const editor = document.getElementById("editor");
+
+/* ---- Build Tabs ---- */
+function renderTabs(){
+    tabBar.innerHTML="";
+    tabs.forEach((t,i)=>{
+        let el=document.createElement("div");
+        el.className="tab" + (i==active?" active":"");
+        el.textContent=t.name;
+        el.onclick=()=>changeTab(i);
+        el.oncontextmenu=(e)=>{e.preventDefault(); deleteTab(i);};
+        tabBar.appendChild(el);
+    });
+    let add=document.createElement("div");
+    add.id="addTab";add.textContent="+ Add Tab";
+    add.onclick=addTab;
+    tabBar.appendChild(add);
+}
+
+/* ---- Switch Tabs (with fade animation) ---- */
+function changeTab(i){
+    saveText();
+    editor.style.opacity=0;
+    setTimeout(()=>{
+        active=i;editor.value=tabs[i].text;
+        localStorage.setItem("activeTab", active);
+        renderTabs();editor.style.opacity=1;
+    },200);
+}
+
+/* ---- New Tab ---- */
+function addTab(){
+    tabs.push({name:"Note "+(tabs.length+1),text:""});
+    active=tabs.length-1;
+    saveAll();
+    renderTabs();
+    changeTab(active);
+}
+
+/* ---- Delete Tab ---- */
+function deleteTab(i){
+    if(tabs.length===1) return alert("You need at least one tab!");
+    tabs.splice(i,1);
+    if(active>=tabs.length) active=tabs.length-1;
+    saveAll();renderTabs();changeTab(active);
+}
+
+/* ---- Save text continuously ---- */
+function saveText(){
+    tabs[active].text=editor.value;
+    saveAll();
+}
+function saveAll(){
+    localStorage.setItem("tabs", JSON.stringify(tabs));
+    localStorage.setItem("activeTab", active);
+}
+
+editor.addEventListener("input", saveText);
+
+/* ---- Initialize ---- */
+renderTabs();
+editor.value=tabs[active].text;
+</script>
+
 </body>
 </html>
