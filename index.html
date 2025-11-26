@@ -2,76 +2,81 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Glass Smooth Notes</title>
+<title>Glass Smooth Notes With Fade Typing</title>
 
 <style>
     *{margin:0;padding:0;box-sizing:border-box;}
 
     body,html{
-        width:100%;height:100%;overflow:hidden;
-        font-family: "Segoe UI", "Inter", Arial, sans-serif;
-        background: linear-gradient(135deg,#1e1f24,#111);
+        height:100%;overflow:hidden;
+        background:linear-gradient(135deg,#101014,#000);
+        font-family:"Inter","Segoe UI",sans-serif;
         color:white;
     }
 
-    /* --- Top Bar (Glass Effect) --- */
-    #tabs {
-        display:flex;align-items:center;
-        backdrop-filter: blur(14px);
-        background: rgba(255,255,255,0.06);
-        padding:10px 14px;
-        border-bottom:1px solid rgba(255,255,255,0.12);
-        gap:8px;
-        box-shadow:0 4px 18px rgba(0,0,0,.4);
-    }
-
-    .tab {
-        padding:8px 16px;
-        background:rgba(255,255,255,.07);
-        border-radius:8px;
-        cursor:pointer;
-        transition:.3s;
-        white-space:nowrap;
-        font-size:15px;
-        opacity:.85;
-    }
-    .tab:hover {opacity:1;transform:translateY(-1px);}
-
-    .tab.active {
-        background:rgba(0,140,255,.45);
-        box-shadow:0 0 15px rgba(0,140,255,.55);
-        opacity:1;font-weight:600;
-    }
-
-    #addTab {
-        margin-left:auto;
-        padding:8px 14px;
-        background:rgba(0,200,90,.45);
-        border-radius:8px;
-        cursor:pointer;
-        transition:.3s;
-        font-weight:600;
-        opacity:.85;
-    }
-    #addTab:hover {opacity:1;transform:translateY(-1px);}
-
-    /* --- Text Area --- */
-    #editor {
-        width:100%;
-        height:calc(100% - 58px);
-        border:none;outline:none;resize:none;
-        padding:25px;
-        font-size:18px;
-        line-height:1.55;
+    /*==================== TAB BAR (GLASS) ====================*/
+    #tabs{
+        display:flex;align-items:center;gap:10px;
         background:rgba(255,255,255,.05);
-        backdrop-filter: blur(10px);
-        color:white;
-        transition:opacity .28s ease;
-        caret-color:#00a6ff;
+        backdrop-filter:blur(14px);
+        padding:10px 14px;
+        box-shadow:0 3px 18px rgba(0,0,0,.45);
+        border-bottom:1px solid rgba(255,255,255,.12);
     }
 
-    #editor:focus {
-        box-shadow:inset 0 0 30px rgba(0,170,255,.18);
+    .tab{
+        display:flex;align-items:center;gap:6px;
+        padding:8px 14px;
+        background:rgba(255,255,255,.06);
+        border-radius:8px;
+        cursor:pointer;
+        transition:.25s;
+        opacity:.85;
+    }
+    .tab.active{
+        background:rgba(0,140,255,.45);
+        box-shadow:0 0 14px rgba(0,140,255,.6);
+        font-weight:600;opacity:1;
+    }
+    .tab:hover{opacity:1;transform:translateY(-1px);}
+
+    .delBtn{
+        background:rgba(255,70,70,.65);
+        padding:2px 6px;
+        border-radius:6px;
+        font-size:13px;
+        cursor:pointer;
+        transition:.25s;
+    }
+    .delBtn:hover{background:rgba(255,0,0,.85);}
+
+    #addTab{
+        margin-left:auto;
+        background:rgba(0,200,90,.55);
+        padding:8px 13px;border-radius:8px;
+        cursor:pointer;font-weight:600;
+        transition:.25s;opacity:.85;
+    }
+    #addTab:hover{opacity:1;transform:translateY(-1px);}
+
+    /*==================== EDITOR (GLASS) ====================*/
+    #editor{
+        width:100%;height:calc(100% - 60px);
+        background:rgba(255,255,255,.04);
+        backdrop-filter:blur(8px);
+        border:none;outline:none;resize:none;
+        padding:25px;font-size:18px;line-height:1.55;
+        color:white;caret-color:#00a6ff;
+        opacity:1;transition:opacity .3s ease; 
+    }
+
+    /* Typing fade effect */
+    .fadeInput{
+        animation:fadeText .28s ease;
+    }
+    @keyframes fadeText{
+        0%{opacity:.3;}
+        100%{opacity:1;}
     }
 </style>
 </head>
@@ -82,76 +87,76 @@
 <textarea id="editor" placeholder="Start typing..."></textarea>
 
 <script>
-/* ========================= LocalStorage ========================= */
-let tabs = JSON.parse(localStorage.getItem("tabs")) || [{name:"Note 1", text:""}];
-let active = localStorage.getItem("activeTab") || 0;
+/*==================== STORAGE ====================*/
+let tabs = JSON.parse(localStorage.getItem("tabs")) || [{name:"Note 1",text:""}];
+let active = Number(localStorage.getItem("activeTab")) || 0;
 
-const tabBar = document.getElementById("tabs");
-const editor = document.getElementById("editor");
+const tabBar=document.getElementById("tabs");
+const editor=document.getElementById("editor");
 
-/* ========================= Build Tab Bar ========================= */
+/*==================== RENDER TABS ====================*/
 function renderTabs(){
     tabBar.innerHTML="";
     tabs.forEach((t,i)=>{
         let el=document.createElement("div");
-        el.className="tab" + (i==active?" active":"");
-        el.textContent=t.name;
+        el.className="tab"+(i==active?" active":"");
         el.onclick=()=>changeTab(i);
-        el.oncontextmenu=(e)=>{e.preventDefault(); deleteTab(i);} // Right-click remove
+        el.innerHTML=`${t.name} <span class="delBtn" onclick="deleteTab(${i});event.stopPropagation();">×</span>`;
         tabBar.appendChild(el);
     });
 
     let add=document.createElement("div");
-    add.id="addTab"; add.textContent="+ New Note";
+    add.id="addTab";add.textContent="+ New Note";
     add.onclick=addTab;
     tabBar.appendChild(add);
 }
 
-/* ========================= Switch Tabs w/ Fade ========================= */
+/*==================== SWITCH TABS + FADE ====================*/
 function changeTab(i){
     saveText();
     editor.style.opacity=0;
     setTimeout(()=>{
         active=i;
-        editor.value=tabs[i].text;
-        localStorage.setItem("activeTab", active);
+        editor.value=tabs[i].text || "";
+        localStorage.setItem("activeTab",active);
         renderTabs();
         editor.style.opacity=1;
     },200);
 }
 
-/* ========================= NEW NOTE — Empty instantly ========================= */
+/*==================== NEW NOTE (STARTS EMPTY) ====================*/
 function addTab(){
     saveText();
-    tabs.push({name:"Note "+(tabs.length+1), text:""});
+    tabs.push({name:"Note "+(tabs.length+1),text:""});
     active=tabs.length-1;
-    saveAll();
-    renderTabs();
-    editor.value="";
-    editor.focus();
+    saveAll();renderTabs();
+    editor.value="";editor.focus();
 }
 
-/* ========================= Delete a Tab ========================= */
+/*==================== DELETE NOTE BUTTON ====================*/
 function deleteTab(i){
-    if(tabs.length===1) return alert("You need at least one note.");
+    if(tabs.length===1) return alert("You must keep at least one note.");
     tabs.splice(i,1);
     if(active>=tabs.length) active=tabs.length-1;
-    saveAll(); renderTabs(); changeTab(active);
+    saveAll();renderTabs();changeTab(active);
 }
 
-/* ========================= Saving ========================= */
-function saveText(){
-    tabs[active].text=editor.value;
-    saveAll();
-}
+/*==================== SAVE ====================*/
+function saveText(){tabs[active].text=editor.value;saveAll();}
 function saveAll(){
-    localStorage.setItem("tabs", JSON.stringify(tabs));
-    localStorage.setItem("activeTab", active);
+    localStorage.setItem("tabs",JSON.stringify(tabs));
+    localStorage.setItem("activeTab",active);
 }
 
-editor.addEventListener("input", saveText);
+/*==================== Fade Typing Animation ====================*/
+editor.addEventListener("input",()=>{
+    saveText();
+    editor.classList.remove("fadeInput");
+    void editor.offsetWidth;      // restart animation
+    editor.classList.add("fadeInput");
+});
 
-/* ========================= Initialize ========================= */
+/*==================== START ====================*/
 renderTabs();
 editor.value=tabs[active].text;
 </script>
